@@ -208,6 +208,12 @@ section.your-active-class .landing__container::after {
     animation: rotate 5s linear 0s infinite forwards reverse;
 }
 
+.menu__link.active {
+    background: #333;
+    color: #fff;
+    transition: ease 0.3s all;
+}
+
 /* Section Active Styles Keyframe Animations */
 @keyframes rotate {
 	from {
