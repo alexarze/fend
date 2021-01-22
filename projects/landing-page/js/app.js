@@ -56,6 +56,28 @@ function recalc() {
     updateActive()
 }
 
+function currentPosition() {
+    return window.pageYOffset + Math.max(window.innerHeight / 2, navHeight)
+}
+
+function updateCurrentActive() {
+    // Updates the current active section after a non-user scroll
+    const currPosition = currentPosition()
+    let newActive = -1
+
+    for (let i = 0; i < breakpoints.length; i++) {
+        if (breakpoints[i] < currPosition) {
+            newActive = i
+        } else {
+            break
+        }
+    }
+
+    unsetActive(curActive)
+    setActive(newActive)
+    curActive = newActive
+}
+
 function setActive(i) {
     if (i > -1 && i < sections.length) {
         sections[i].element.classList.add('your-active-class')
@@ -75,6 +97,12 @@ function unsetActive(i) {
  * Begin Main Functions
  * 
 */
+
+// main function
+function main() {
+    updateCurrentActive()
+    updateActive()
+}
 
 // build the nav
 function buildNav() {
@@ -109,16 +137,21 @@ function buildNav() {
 
 // Add class 'active' to section when near top of viewport
 function updateActive() {
-    const curPosition = window.pageYOffset + Math.max(window.innerHeight / 2, navHeight)
-    let newActive = -1
+    const curPosition = currentPosition()
+    let newActive = curActive
 
-    for (let i = 0; i < breakpoints.length; i++) {
-        if (curPosition < breakpoints[i]) {
-            newActive = i - 1
-            break
-        } else {
-            newActive = i
-        }
+    const top = (curActive == -1) 
+        ? 0 
+        : breakpoints[curActive]
+    
+    const bottom = (curActive == breakpoints.length - 1) 
+        ? document.body.clientHeight 
+        : breakpoints[curActive + 1]
+
+    if (curPosition < top) {
+        newActive = curActive - 1
+    } else if (curPosition > bottom) {
+        newActive = curActive + 1
     }
 
     if (newActive != curActive) {
@@ -140,6 +173,9 @@ function scrollToAnchor(event) {
         top: top - height + yOffset,
         behavior: 'smooth'
     })
+
+    updateCurrentActive()
+    updateActive()
 }
 
 
@@ -151,8 +187,17 @@ function scrollToAnchor(event) {
 
 // Build menu 
 document.addEventListener('DOMContentLoaded', buildNav)
+window.addEventListener('load', main)
 
 // Set sections as active
-document.addEventListener('scroll', updateActive)
+window.addEventListener('scroll', updateActive, {passive: true})
 
 window.addEventListener('resize', recalc)
+
+/**
+ * End Events
+ * Begin Feature Toggles
+ */
+
+//  Prevent automatic scroll recovery
+history.scrollRestoration = 'manual'
