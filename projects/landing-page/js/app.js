@@ -18,10 +18,12 @@
  * 
 */
 let sections = [];
-let breakpoints = [];
-let navNode;
 let navHeight;
-let curActive = -1;
+
+const options = {
+    rootMargin: '0px',
+    threshold: 0.55
+}
 
 /**
  * End Global Variables
@@ -31,66 +33,33 @@ let curActive = -1;
 
 // Construct the sections array to reduce requerying
 function findSections() {
-    sectionList = document.querySelectorAll('section');
-    sectionList.forEach((section) => {
+    document.querySelectorAll('section').forEach((section) => {
         sections.push({
             element: section,
             nav: section.getAttribute('data-nav'),
             id: section.getAttribute('id')
         });
 
-        breakpoints.push(section.getBoundingClientRect().top);
+        // Add to observer
+        observer.observe(section)
     });
-    console.log(sections);
 }
 
-function recalc() {
-    // navigation height
-    navHeight = navNode.getBoundingClientRect().height;
+function setActive(e) {
+    // find the section for element e
+    i = sections.findIndex(section => section.id == e.id);
+    let applyFunc;
 
-    // section heights
-    for (let i = 0; i < sections.length; i++) {
-        breakpoints[i] = sections[i].element.getBoundingClientRect().top + window.pageYOffset;
-    }
-
-    // update the active section
-    updateActive();
-}
-
-function currentPosition() {
-    return window.pageYOffset + Math.max(window.innerHeight / 2, navHeight);
-}
-
-function updateCurrentActive() {
-    // Updates the current active section after a non-user scroll
-    const currPosition = currentPosition();
-    let newActive = -1;
-
-    for (let i = 0; i < breakpoints.length; i++) {
-        if (breakpoints[i] < currPosition) {
-            newActive = i;
+    sections.forEach(section => {
+        if (section.id == e.id) {
+            applyFunc = DOMTokenList.prototype.add
         } else {
-            break;
+            applyFunc = DOMTokenList.prototype.remove
         }
-    }
 
-    unsetActive(curActive);
-    setActive(newActive);
-    curActive = newActive;
-}
-
-function setActive(i) {
-    if (i > -1 && i < sections.length) {
-        sections[i].element.classList.add('your-active-class');
-        sections[i].navElement.classList.add('active');
-    }
-}
-
-function unsetActive(i) {
-    if (i > -1 && i < sections.length) {
-        sections[i].element.classList.remove('your-active-class');
-        sections[i].navElement.classList.remove('active');
-    }
+        applyFunc.call(section.element.classList, 'your-active-class');
+        applyFunc.call(section.navElement.classList, 'active');
+    })
 }
 
 /**
@@ -99,16 +68,10 @@ function unsetActive(i) {
  * 
 */
 
-// main function
-function main() {
-    updateCurrentActive();
-    updateActive();
-}
-
 // build the nav
 function buildNav() {
     // init
-    navNode = document.getElementById('navbar__list');
+    const navNode = document.getElementById('navbar__list');
 
     // find the sections for navigation
     findSections();
@@ -132,34 +95,17 @@ function buildNav() {
     });
     navNode.hidden = false;
 
+    // Navigation height never changes
     navHeight = navNode.getBoundingClientRect().height;
 }
 
 
-// Add class 'active' to section when near top of viewport
-function updateActive() {
-    const curPosition = currentPosition();
-    let newActive = curActive;
-
-    const top = (curActive == -1) 
-        ? 0 
-        : breakpoints[curActive];
-    
-    const bottom = (curActive == breakpoints.length - 1) 
-        ? document.body.clientHeight 
-        : breakpoints[curActive + 1];
-
-    if (curPosition < top) {
-        newActive = curActive - 1;
-    } else if (curPosition > bottom) {
-        newActive = curActive + 1;
-    }
-
-    if (newActive != curActive) {
-        unsetActive(curActive);
-        setActive(newActive);
-        curActive = newActive;
-    }
+function updateActive(entries, observer) {
+    entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+            setActive(entry.target);
+        }
+    })
 }
 
 
@@ -174,18 +120,6 @@ function scrollToAnchor(event) {
         top: top - height + yOffset,
         behavior: 'smooth'
     });
-
-    updateCurrentActive();
-    updateActive();
-}
-
-// The event function for scrolling
-function scrollEvent(event) {
-    updateActive();
-
-    // Toggle nav show
-    navNode.classList.add('hidden');
-    window.setTimeout(navNode.classList.toggle, 1*1000);
 }
 
 
@@ -197,17 +131,6 @@ function scrollEvent(event) {
 
 // Build menu 
 document.addEventListener('DOMContentLoaded', buildNav);
-window.addEventListener('load', main);
 
-// Set sections as active
-window.addEventListener('scroll', updateActive, {passive: true});
-
-window.addEventListener('resize', recalc);
-
-/**
- * End Events
- * Begin Feature Toggles
- */
-
-//  Prevent automatic scroll recovery
-history.scrollRestoration = 'manual';
+// Create observer to listen for when sections become active
+const observer = new IntersectionObserver(updateActive, options)
