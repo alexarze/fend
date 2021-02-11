@@ -29,6 +29,7 @@ let curActive = -1;
  * 
 */
 
+// Construct the sections array to reduce requerying
 function findSections() {
     sectionList = document.querySelectorAll('section');
     sectionList.forEach((section) => {
@@ -176,6 +177,15 @@ function scrollToAnchor(event) {
 
     updateCurrentActive();
     updateActive();
+}
+
+// The event function for scrolling
+function scrollEvent(event) {
+    updateActive();
+
+    // Toggle nav show
+    navNode.classList.add('hidden');
+    window.setTimeout(navNode.classList.toggle, 1*1000);
 }
 
 
